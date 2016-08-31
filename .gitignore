@@ -1,0 +1,23 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+.DS_Store
+*~
+.sass-cache
+
+# PyCharm
+.idea/
+
+# VirtualEnv dir
+pyEnv/
+
+# Reports dir
+reports/
+
+# Egg-Info
+Flask_CI.egg-info/
+
+# Dist dir
+dist/
+/docs/_build
