@@ -1,5 +1,4 @@
 import inspect
-import time
 
 from botocore.exceptions import ClientError
 
@@ -55,21 +54,38 @@ class ModelMetadata(object):
             'KeyType': type_
         })
 
-    def create_table(self, connection, provisioned_throughput, wait=False):
-        existing_stables = set(connection.list_tables()['TableNames'])
+    def __table_exists(self, connection):
+        try:
+            return bool(connection.Table(self.name).table_status)
+        except ClientError:
+            return False
 
-        if self.name in existing_stables:
+    def create_table(self, connection, provisioned_throughput, wait=False):
+        if self.__table_exists(connection):
             return None
 
-        connection.create_table(AttributeDefinitions=self.attribute_definitions, TableName=self.name,
-                                KeySchema=self.key_schema, ProvisionedThroughput=provisioned_throughput)
+        table = connection.create_table(AttributeDefinitions=self.attribute_definitions, TableName=self.name,
+                                        KeySchema=self.key_schema, ProvisionedThroughput=provisioned_throughput)
 
         if wait:
             while True:
                 try:
-                    table_describe = connection.describe_table(TableName=self.name)
-                    if table_describe['Table']['TableStatus'] == 'ACTIVE':
-                        break
-                    time.sleep(1)
+                    table.wait_until_exists()
+                    break
+                except ClientError:
+                    pass
+
+    def delete_table(self, connection, wait=False):
+        if not self.__table_exists(connection):
+            return None
+
+        table = connection.Table(self.name)
+        table.delete()
+
+        if wait:
+            while True:
+                try:
+                    table.wait_until_not_exists()
+                    break
                 except ClientError:
                     pass
